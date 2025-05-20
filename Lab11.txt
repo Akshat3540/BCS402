@@ -1,0 +1,46 @@
+#include <lpc214x.h>
+
+void initClocks(void);
+void initTimer0(void);
+void __irq timerISR(void);
+
+int main(void) {
+    initClocks();
+    initTimer0();
+    IO0DIR = (1 << 10);
+    IO0PIN = (1 << 10);
+    T0TCR = (1 << 0);
+    
+    while(1);
+}
+
+void initTimer0(void) {
+    T0CTCR = 0x0;
+    T0PR = 60000 - 1;
+    T0MR0 = 5000 - 1;
+    T0MCR = (1 << 0) | (1 << 1);
+    VICVectAddr4 = (unsigned)timerISR;
+    VICVectCntl4 = (1 << 5) | 4;
+    VICIntEnable = (1 << 4);
+    T0TCR = (1 << 1);
+}
+
+void __irq timerISR(void) {
+    long int readVal;
+    readVal = T0IR;
+    IO0PIN ^= (1 << 10);
+    T0IR = readVal;
+    VICVectAddr = 0x0;
+}
+
+void initClocks(void) {
+    PLL0CON = 0x01;
+    PLL0CFG = 0x24;
+    PLL0FEED = 0xAA;
+    PLL0FEED = 0x55;
+    while (!(PLL0STAT & 0x00000400));
+    PLL0CON = 0x03;
+    PLL0FEED = 0xAA;
+    PLL0FEED = 0x55;
+    VPBDIV = 0x01;
+}
